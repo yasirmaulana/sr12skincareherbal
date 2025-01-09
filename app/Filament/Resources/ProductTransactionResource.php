@@ -5,8 +5,11 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductTransactionResource\Pages;
 use App\Filament\Resources\ProductTransactionResource\RelationManagers;
 use App\Models\ProductTransaction;
+use App\Models\Skincare;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
+use Filament\Forms\FormsComponent;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,6 +27,34 @@ class ProductTransactionResource extends Resource
         return $form
             ->schema([
                 //
+                Forms\Components\Wizard::make([
+
+                    Forms\Components\Wizard\Step::make('Product and Price')
+                        ->schema([
+                            Grid::make(2)
+                                ->schema([
+                                    Forms\Components\Select::make('skincare_id')
+                                        ->relationship('skincare', 'name')
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                            $skincare = Skincare::find($state);
+                                            $price = $skincare ? $skincare->price : 0;
+                                            $quantity = $get('quantity') ?? 1;
+                                            $subTotalAmount = $price * $quantity;
+
+                                            $set('price', $price);
+                                            $set('sub_total_amount', $subTotalAmount);
+
+                                            $discount = $get('discount_amount') ?? 0;
+                                            $grandTotalAmount = $subTotalAmount - $discount;
+                                            $set('grand_total_amount', $grandTotalAmount);
+                                        })
+                                ])
+                        ])
+                ]),
             ]);
     }
 
